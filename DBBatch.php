@@ -2,14 +2,14 @@
 namespace mrssoft\db;
 
 /**
- * Пакетная вставка / обновление записей
+ * РџР°РєРµС‚РЅР°СЏ РІСЃС‚Р°РІРєР° / РѕР±РЅРѕРІР»РµРЅРёРµ Р·Р°РїРёСЃРµР№
  */
 class DbBatch extends \yii\base\Component
 {
     private $data = [];
 
     /**
-     * Добавить запись
+     * Р”РѕР±Р°РІРёС‚СЊ Р·Р°РїРёСЃСЊ
      * @param array $data
      * @param mixed $key
      */
@@ -23,7 +23,7 @@ class DbBatch extends \yii\base\Component
     }
 
     /**
-     * Обновить запись
+     * РћР±РЅРѕРІРёС‚СЊ Р·Р°РїРёСЃСЊ
      * @param array $data
      * @param mixed $key
      */
@@ -35,7 +35,7 @@ class DbBatch extends \yii\base\Component
     }
 
     /**
-     * Удаление записи
+     * РЈРґР°Р»РµРЅРёРµ Р·Р°РїРёСЃРё
      * @param mixed $key
      */
     public function remove($key)
@@ -46,7 +46,7 @@ class DbBatch extends \yii\base\Component
     }
 
     /**
-     * Проверка наличия записи
+     * РџСЂРѕРІРµСЂРєР° РЅР°Р»РёС‡РёСЏ Р·Р°РїРёСЃРё
      * @param $key
      * @return bool
      */
@@ -61,7 +61,7 @@ class DbBatch extends \yii\base\Component
     }
 
     /**
-     * Плучение значение элемента
+     * РџР»СѓС‡РµРЅРёРµ Р·РЅР°С‡РµРЅРёРµ СЌР»РµРјРµРЅС‚Р°
      * @param $key
      * @return array|null
      */
@@ -85,7 +85,7 @@ class DbBatch extends \yii\base\Component
     }
 
     /**
-     * Выполнить вставку
+     * Р’С‹РїРѕР»РЅРёС‚СЊ РІСЃС‚Р°РІРєСѓ
      * @return bool
      * @param $table
      * @param bool $truncate
@@ -99,7 +99,7 @@ class DbBatch extends \yii\base\Component
     }
 
     /**
-     * Выполнить замену
+     * Р’С‹РїРѕР»РЅРёС‚СЊ Р·Р°РјРµРЅСѓ
      * @return bool
      * @param $table
      * @param bool $truncate
@@ -128,7 +128,7 @@ class DbBatch extends \yii\base\Component
     }
 
     /**
-     * Выполнить запрос
+     * Р’С‹РїРѕР»РЅРёС‚СЊ Р·Р°РїСЂРѕСЃ
      * @param $table
      * @param $command
      * @return bool
@@ -146,7 +146,7 @@ class DbBatch extends \yii\base\Component
 
 
     /**
-     * Сформировать строку запроса
+     * РЎС„РѕСЂРјРёСЂРѕРІР°С‚СЊ СЃС‚СЂРѕРєСѓ Р·Р°РїСЂРѕСЃР°
      * @param $command
      * @param $table
      * @return string
