@@ -112,9 +112,17 @@ class DbBatch extends \yii\base\Component
         return $this->execute('REPLACE', $table);
     }
 
-    public function update($table, $truncate = false)
+    /**
+     * Обновить запись
+     * @param array $data
+     * @param mixed $key
+     */
+    public function update($data, $key)
     {
-
+        if (array_key_exists($key, $this->data))
+        {
+            $this->data[$key] = \yii\helpers\ArrayHelper::merge($this->data[$key], $data);
+        }
     }
 
     /**
