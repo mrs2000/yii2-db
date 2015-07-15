@@ -78,6 +78,15 @@ class DbBatch extends \yii\base\Component
     {
         return array_values($this->data);
     }
+	
+    /**
+     * Массив данных
+     * @param array $array
+     */
+    public function setData($array = [])
+    {
+        $this->data = $array;
+    }	
 
     public function getKeys()
     {
@@ -169,7 +178,7 @@ class DbBatch extends \yii\base\Component
         $values = [];
         foreach ($this->data as $row) {
             foreach ($row as &$v) {
-                $v = \Yii::$app->db->quoteValue($v);
+                $v = \Yii::$app->db->getSlavePdo()->quote($v);
             }
             $values[] = '(' . implode(',', $row) . ')';
         }
