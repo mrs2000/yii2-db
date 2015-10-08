@@ -1,6 +1,10 @@
 <?
 namespace mrssoft\db;
 
+use Yii;
+use yii\base\Exception;
+use yii\helpers\ArrayHelper;
+
 /**
  * Пакетная вставка / обновление записей
  */
@@ -30,7 +34,7 @@ class DbBatch extends \yii\base\Component
     public function addToExist($data, $key)
     {
         if (array_key_exists($key, $this->data)) {
-            $this->data[$key] = \yii\helpers\ArrayHelper::merge($this->data[$key], $data);
+            $this->data[$key] = ArrayHelper::merge($this->data[$key], $data);
         }
     }
 
@@ -78,15 +82,15 @@ class DbBatch extends \yii\base\Component
     {
         return array_values($this->data);
     }
-	
+
     /**
      * Массив данных
      * @param array $array
      */
-    public function setData($array = [])
+    public function setData(array $array = [])
     {
         $this->data = $array;
-    }	
+    }
 
     public function getKeys()
     {
@@ -101,8 +105,11 @@ class DbBatch extends \yii\base\Component
      */
     public function insert($table, $truncate = false)
     {
-        if ($truncate)
-            \Yii::$app->db->createCommand()->truncateTable($table)->execute();
+        if ($truncate) {
+            Yii::$app->db->createCommand()
+                         ->truncateTable($table)
+                         ->execute();
+        }
 
         return $this->execute('INSERT', $table);
     }
@@ -115,8 +122,11 @@ class DbBatch extends \yii\base\Component
      */
     public function replace($table, $truncate = false)
     {
-        if ($truncate)
-            \Yii::$app->db->createCommand()->truncateTable($table)->execute();
+        if ($truncate) {
+            Yii::$app->db->createCommand()
+                         ->truncateTable($table)
+                         ->execute();
+        }
 
         return $this->execute('REPLACE', $table);
     }
@@ -128,8 +138,7 @@ class DbBatch extends \yii\base\Component
      */
     public function update($data, $key)
     {
-        if (array_key_exists($key, $this->data))
-        {
+        if (array_key_exists($key, $this->data)) {
             $this->data[$key] = \yii\helpers\ArrayHelper::merge($this->data[$key], $data);
         }
     }
@@ -139,9 +148,9 @@ class DbBatch extends \yii\base\Component
      */
     public static function setForeignKey($value)
     {
-        $value = (bool)$value ? '1' : '0';
-        $sql = 'SET FOREIGN_KEY_CHECKS = ' . $value;
-        \Yii::$app->db->createCommand($sql)->execute();
+        $val = (bool)$value ? '1' : '0';
+        $sql = 'SET FOREIGN_KEY_CHECKS = ' . $val;
+        Yii::$app->db->createCommand($sql)->execute();
     }
 
     /**
@@ -152,13 +161,16 @@ class DbBatch extends \yii\base\Component
      */
     private function execute($command, $table)
     {
-        if (empty($this->data)) return false;
+        if (empty($this->data)) {
+            return false;
+        }
         if ($command == 'update') {
             $sql = $this->compileUpdate($table);
         } else {
             $sql = $this->compile($command, $table);
         }
-        return \Yii::$app->db->createCommand($sql)->execute();
+
+        return Yii::$app->db->createCommand($sql)->execute();
     }
 
 
@@ -171,14 +183,14 @@ class DbBatch extends \yii\base\Component
     private function compile($command, $table)
     {
         $fields = [];
-        foreach (array_keys(reset($this->data)) as $row) {
+        foreach (array_keys(reset($this->data)) as $row => $tmp) {
             $fields[] = '`' . $row . '`';
         }
 
         $values = [];
         foreach ($this->data as $row) {
             foreach ($row as &$v) {
-                $v = \Yii::$app->db->getSlavePdo()->quote($v);
+                $v = $v === null ? 'NULL' : Yii::$app->db->getSlavePdo()->quote($v);
             }
             $values[] = '(' . implode(',', $row) . ')';
         }
@@ -188,9 +200,10 @@ class DbBatch extends \yii\base\Component
 
     /**
      * @param $table
+     * @throws Exception
      */
     private function compileUpdate($table)
     {
-
+        throw new Exception('Not yet implemented.');
     }
 }
