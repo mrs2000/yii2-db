@@ -183,7 +183,7 @@ class DbBatch extends \yii\base\Component
     private function compile($command, $table)
     {
         $fields = [];
-        foreach (array_keys(reset($this->data)) as $row => $tmp) {
+        foreach (reset($this->data) as $row => $tmp) {
             $fields[] = '`' . $row . '`';
         }
 
