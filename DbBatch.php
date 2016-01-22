@@ -12,6 +12,8 @@ class DbBatch extends \yii\base\Component
 {
     private $data = [];
 
+    public $autoFreeMemory = true;
+
     /**
      * Добавить запись
      * @param array $data
@@ -170,9 +172,14 @@ class DbBatch extends \yii\base\Component
             $sql = $this->compile($command, $table);
         }
 
-        return Yii::$app->db->createCommand($sql)->execute();
-    }
+        $ret = Yii::$app->db->createCommand($sql)->execute();
 
+        if ($this->autoFreeMemory) {
+            $sql = null;
+            $this->data = null;
+            gc_collect_cycles();
+        }
+    }
 
     /**
      * Сформировать строку запроса
