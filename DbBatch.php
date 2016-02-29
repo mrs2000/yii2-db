@@ -14,6 +14,8 @@ class DbBatch extends \yii\base\Component
 
     public $autoFreeMemory = true;
 
+    public $maxItemsInQuery = null;
+
     /**
      * Добавить запись
      * @param array $data
@@ -172,8 +174,6 @@ class DbBatch extends \yii\base\Component
             $sql = $this->compile($command, $table);
         }
 
-        $ret = Yii::$app->db->createCommand($sql)->execute();
-
         if ($this->autoFreeMemory) {
             $sql = null;
             $this->data = null;
@@ -194,15 +194,34 @@ class DbBatch extends \yii\base\Component
             $fields[] = '`' . $row . '`';
         }
 
+        $pdo = Yii::$app->db->getSlavePdo();
+
         $values = [];
+        $n = 0;
         foreach ($this->data as $row) {
             foreach ($row as &$v) {
-                $v = $v === null ? 'NULL' : Yii::$app->db->getSlavePdo()->quote($v);
+                $v = $v === null ? 'NULL' : $pdo->quote($v);
             }
             $values[] = '(' . implode(',', $row) . ')';
+
+            if ($this->maxItemsInQuery !== null && $this->maxItemsInQuery == ++$n) {
+                $this->executePartial($command, $table, $fields, $values);
+                $n = 0;
+            }
         }
 
-        return $command . ' INTO ' . $table . ' (' . implode(',', $fields) . ') VALUES ' . implode(',', $values);
+        if (count($values) > 0) {
+            $this->executePartial($command, $table, $fields, $values);
+        }
+    }
+
+    private function executePartial($command, $table, &$fields, &$values)
+    {
+        $sql = $command . ' INTO ' . $table . ' (' . implode(',', $fields) . ') VALUES ' . implode(',', $values);
+        Yii::$app->db->createCommand($sql)->execute();
+        $values = [];
+        $sql = null;
+        gc_collect_cycles();
     }
 
     /**
