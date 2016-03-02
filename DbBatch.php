@@ -3,18 +3,50 @@ namespace mrssoft\db;
 
 use Yii;
 use yii\base\Exception;
+use yii\base\InvalidParamException;
 use yii\helpers\ArrayHelper;
 
 /**
  * Пакетная вставка / обновление записей
+ *
+ * @property int $count
+ * @property array $data
+ * @property array $keys
  */
 class DbBatch extends \yii\base\Component
 {
+    const COMMAND_INSERT = 'insert';
+    const COMMAND_REPLACE = 'replace';
+
     private $data = [];
 
     public $autoFreeMemory = true;
 
-    public $maxItemsInQuery = null;
+    /**
+     * Максимальное кол-во записей перед вставкой
+     * @var int
+     */
+    public $maxItemsInQuery;
+
+    /**
+     * Таблица БД {{%table}}
+     * @var string
+     */
+    public $table;
+
+    /**
+     * Комманда INSERT или REPLACE
+     * @var string
+     */
+    public $command = self::COMMAND_INSERT;
+
+    /**
+     * Предварительная очистка таблицы
+     * @var bool
+     */
+    public $truncate = false;
+
+    private $isTruncate = false;
 
     /**
      * Добавить запись
@@ -28,17 +60,9 @@ class DbBatch extends \yii\base\Component
         } else {
             $this->data[$key] = $data;
         }
-    }
 
-    /**
-     * Обновить запись
-     * @param array $data
-     * @param mixed $key
-     */
-    public function addToExist($data, $key)
-    {
-        if (array_key_exists($key, $this->data)) {
-            $this->data[$key] = ArrayHelper::merge($this->data[$key], $data);
+        if ($this->table !== null && $this->maxItemsInQuery !== null && count($this->data) >= $this->maxItemsInQuery) {
+            $this->execute();
         }
     }
 
@@ -110,12 +134,9 @@ class DbBatch extends \yii\base\Component
     public function insert($table, $truncate = false)
     {
         if ($truncate) {
-            Yii::$app->db->createCommand()
-                         ->truncateTable($table)
-                         ->execute();
+            $this->truncate($table);
         }
-
-        return $this->execute('INSERT', $table);
+        return $this->executeCommand('INSERT', $table);
     }
 
     /**
@@ -127,12 +148,26 @@ class DbBatch extends \yii\base\Component
     public function replace($table, $truncate = false)
     {
         if ($truncate) {
-            Yii::$app->db->createCommand()
-                         ->truncateTable($table)
-                         ->execute();
+            $this->truncate($table);
+        }
+        return $this->executeCommand('REPLACE', $table);
+    }
+
+    /**
+     * Выполнить комманду
+     * @return bool
+     */
+    public function execute()
+    {
+        if ($this->table === null) {
+            throw new InvalidParamException('Invalid param: table', 500);
         }
 
-        return $this->execute('REPLACE', $table);
+        if (in_array($this->command, [self::COMMAND_INSERT, self::COMMAND_REPLACE], true) === false) {
+            throw new InvalidParamException('Invalid param: command', 500);
+        }
+
+        $this->{$this->command}($this->table, $this->truncate && !$this->isTruncate);
     }
 
     /**
@@ -148,13 +183,23 @@ class DbBatch extends \yii\base\Component
     }
 
     /**
+     * Вкыл. / выкл. проверку внешних ключей
      * @param bool $value
      */
     public static function setForeignKey($value)
     {
         $val = (bool)$value ? '1' : '0';
         $sql = 'SET FOREIGN_KEY_CHECKS = ' . $val;
-        Yii::$app->db->createCommand($sql)->execute();
+        Yii::$app->db->createCommand($sql)
+                     ->execute();
+    }
+
+    private function truncate($table)
+    {
+        Yii::$app->db->createCommand()
+                     ->truncateTable($table)
+                     ->execute();
+        $this->isTruncate = true;
     }
 
     /**
@@ -163,7 +208,7 @@ class DbBatch extends \yii\base\Component
      * @param $command
      * @return bool
      */
-    private function execute($command, $table)
+    private function executeCommand($command, $table)
     {
         if (empty($this->data)) {
             return false;
@@ -176,7 +221,7 @@ class DbBatch extends \yii\base\Component
 
         if ($this->autoFreeMemory) {
             $sql = null;
-            $this->data = null;
+            $this->data = [];
             gc_collect_cycles();
         }
     }
@@ -194,10 +239,11 @@ class DbBatch extends \yii\base\Component
             $fields[] = '`' . $row . '`';
         }
 
-        $pdo = Yii::$app->db->getSlavePdo();
-
-        $values = [];
         $n = 0;
+        $values = [];
+        $pdo = Yii::$app->db->getSlavePdo();
+        $command = $command . ' INTO ' . $table . ' (' . implode(',', $fields) . ') VALUES ';
+
         foreach ($this->data as $row) {
             foreach ($row as &$v) {
                 $v = $v === null ? 'NULL' : $pdo->quote($v);
@@ -205,22 +251,21 @@ class DbBatch extends \yii\base\Component
             $values[] = '(' . implode(',', $row) . ')';
 
             if ($this->maxItemsInQuery !== null && $this->maxItemsInQuery == ++$n) {
-                $this->executePartial($command, $table, $fields, $values);
+                $this->executePartial($command, $values);
                 $n = 0;
             }
         }
 
         if (count($values) > 0) {
-            $this->executePartial($command, $table, $fields, $values);
+            $this->executePartial($command, $values);
         }
     }
 
-    private function executePartial($command, $table, &$fields, &$values)
+    private function executePartial(&$command, &$values)
     {
-        $sql = $command . ' INTO ' . $table . ' (' . implode(',', $fields) . ') VALUES ' . implode(',', $values);
-        Yii::$app->db->createCommand($sql)->execute();
+        Yii::$app->db->createCommand($command . implode(',', $values))
+                     ->execute();
         $values = [];
-        $sql = null;
         gc_collect_cycles();
     }
 
