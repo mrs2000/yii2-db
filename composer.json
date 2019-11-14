@@ -2,7 +2,7 @@
     "name": "mrssoft/yii2-db",
     "description": "Yii2 database tools",
     "type": "yii2-extension",
-    "keywords": ["yii2","extension", "database"],
+    "keywords": ["yii2", "extension", "database"],
     "license": "MIT",
     "authors": [
         {
@@ -11,6 +11,7 @@
         }
     ],
     "require": {
+        "php": ">=7.1",
         "yiisoft/yii2": "*"
     },
     "autoload": {

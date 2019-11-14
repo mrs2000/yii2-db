@@ -3,7 +3,9 @@
 namespace mrssoft\db;
 
 use Yii;
-use yii\base\InvalidParamException;
+use yii\base\ErrorException;
+use yii\db\Connection;
+use yii\helpers\ArrayHelper;
 
 /**
  * Пакетная вставка / обновление записей
@@ -14,8 +16,8 @@ use yii\base\InvalidParamException;
  */
 class DbBatch extends \yii\base\Component
 {
-    const COMMAND_INSERT = 'insert';
-    const COMMAND_REPLACE = 'replace';
+    public const COMMAND_INSERT = 'insert';
+    public const COMMAND_REPLACE = 'replace';
 
     private $data = [];
 
@@ -64,7 +66,7 @@ class DbBatch extends \yii\base\Component
     /**
      * @return \yii\db\Connection
      */
-    private static function getDatabase()
+    private static function getDatabase(): Connection
     {
         return Yii::$app->db;
     }
@@ -73,8 +75,9 @@ class DbBatch extends \yii\base\Component
      * Добавить запись
      * @param array $data
      * @param mixed $key
+     * @throws ErrorException
      */
-    public function add($data, $key = null)
+    public function add(array $data, ?string $key = null): void
     {
         if ($key === null) {
             $this->data[] = $data;
@@ -88,10 +91,20 @@ class DbBatch extends \yii\base\Component
     }
 
     /**
-     * Удаление записи
-     * @param mixed $key
+     * Добавить значение с проверкой на уникальность
+     * @param array $data
+     * @throws ErrorException
      */
-    public function remove($key)
+    public function addUnique(array $data): void
+    {
+        $this->add($data, implode('-', $data));
+    }
+
+    /**
+     * Удаление записи
+     * @param string $key
+     */
+    public function remove(string $key): void
     {
         if (array_key_exists($key, $this->data)) {
             unset($this->data[$key]);
@@ -100,25 +113,29 @@ class DbBatch extends \yii\base\Component
 
     /**
      * Проверка наличия записи
-     * @param $key
+     * @param string $key
      * @return bool
      */
-    public function exists($key)
+    public function exists(string $key): bool
     {
         return array_key_exists($key, $this->data);
     }
 
-    public function getCount()
+    /**
+     * Кол-во элементов
+     * @return int
+     */
+    public function getCount(): int
     {
         return count($this->data);
     }
 
     /**
-     * Плучение значение элемента
-     * @param $key
-     * @return array|null
+     * Плучение значения элемента
+     * @param string $key
+     * @return mixed|null
      */
-    public function get($key)
+    public function get(string $key)
     {
         if (array_key_exists($key, $this->data)) {
             return $this->data[$key];
@@ -127,7 +144,11 @@ class DbBatch extends \yii\base\Component
         return null;
     }
 
-    public function getData()
+    /**
+     * Получить массив всех данных
+     * @return array
+     */
+    public function getData(): array
     {
         return array_values($this->data);
     }
@@ -136,23 +157,27 @@ class DbBatch extends \yii\base\Component
      * Массив данных
      * @param array $array
      */
-    public function setData(array $array = [])
+    public function setData(array $array = []): void
     {
         $this->data = $array;
     }
 
-    public function getKeys()
+    /**
+     * Массив ключей
+     * @return array
+     */
+    public function getKeys(): array
     {
         return array_keys($this->data);
     }
 
     /**
      * Выполнить вставку
-     * @return bool
      * @param $table
      * @param bool $truncate
+     * @return bool
      */
-    public function insert($table, $truncate = false)
+    public function insert(string $table, bool $truncate = false): bool
     {
         if ($truncate) {
             $this->truncate($table);
@@ -162,11 +187,11 @@ class DbBatch extends \yii\base\Component
 
     /**
      * Выполнить замену
-     * @return bool
      * @param $table
      * @param bool $truncate
+     * @return bool
      */
-    public function replace($table, $truncate = false)
+    public function replace(string $table, bool $truncate = false): bool
     {
         if ($truncate) {
             $this->truncate($table);
@@ -176,16 +201,16 @@ class DbBatch extends \yii\base\Component
 
     /**
      * Выполнить комманду
-     * @return bool
+     * @throws ErrorException
      */
-    public function execute()
+    public function execute(): void
     {
         if ($this->table === null) {
-            throw new InvalidParamException('Invalid param: table', 500);
+            throw new ErrorException('Invalid param: table', 500);
         }
 
         if (in_array($this->command, [self::COMMAND_INSERT, self::COMMAND_REPLACE], true) === false) {
-            throw new InvalidParamException('Invalid param: command', 500);
+            throw new ErrorException('Invalid param: command', 500);
         }
 
         $this->{$this->command}($this->table, $this->truncate && !$this->isTruncate);
@@ -196,10 +221,10 @@ class DbBatch extends \yii\base\Component
      * @param array $data
      * @param mixed $key
      */
-    public function update($data, $key)
+    public function update(array $data, string $key): void
     {
         if (array_key_exists($key, $this->data)) {
-            $this->data[$key] = \yii\helpers\ArrayHelper::merge($this->data[$key], $data);
+            $this->data[$key] = ArrayHelper::merge($this->data[$key], $data);
         }
     }
 
@@ -207,10 +232,11 @@ class DbBatch extends \yii\base\Component
      * Вкыл. / выкл. проверку внешних ключей
      * @param bool $value
      * @param \yii\db\Connection $db
+     * @throws \yii\db\Exception
      */
-    public static function setForeignKey($value, $db = null)
+    public static function setForeignKey(bool $value, $db = null): void
     {
-        $val = (bool)$value ? '1' : '0';
+        $val = $value ? '1' : '0';
         $sql = 'SET FOREIGN_KEY_CHECKS = ' . $val;
 
         if ($db === null) {
@@ -221,7 +247,7 @@ class DbBatch extends \yii\base\Component
            ->execute();
     }
 
-    private function truncate($table)
+    private function truncate(string $table): void
     {
         $this->db->createCommand()
                  ->truncateTable($table)
@@ -235,7 +261,7 @@ class DbBatch extends \yii\base\Component
      * @param $command
      * @return bool
      */
-    private function executeCommand($command, $table)
+    private function executeCommand(string $command, string $table): bool
     {
         if (empty($this->data)) {
             return false;
@@ -254,9 +280,8 @@ class DbBatch extends \yii\base\Component
      * Сформировать строку запроса
      * @param $command
      * @param $table
-     * @return string
      */
-    private function compile($command, $table)
+    private function compile(string $command, string $table): void
     {
         $fields = [];
         foreach (reset($this->data) as $row => $tmp) {
@@ -266,7 +291,7 @@ class DbBatch extends \yii\base\Component
         $n = 0;
         $values = [];
         $pdo = $this->db->getSlavePdo();
-        $command = $command . ' INTO ' . $table . ' (' . implode(',', $fields) . ') VALUES ';
+        $command .= ' INTO ' . $table . ' (' . implode(',', $fields) . ') VALUES ';
 
         foreach ($this->data as $row) {
             foreach ($row as &$v) {
@@ -286,7 +311,7 @@ class DbBatch extends \yii\base\Component
         }
     }
 
-    private function executePartial(&$command, &$values)
+    private function executePartial(string &$command, array &$values): void
     {
         $this->db->createCommand($command . implode(',', $values))
                  ->execute();
