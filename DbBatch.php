@@ -290,7 +290,7 @@ class DbBatch extends \yii\base\Component
 
         $n = 0;
         $values = [];
-        $pdo = $this->db->getSlavePdo();
+        $pdo = $this->db->getMasterPdo();
         $command .= ' INTO ' . $table . ' (' . implode(',', $fields) . ') VALUES ';
 
         foreach ($this->data as $row) {

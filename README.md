@@ -3,7 +3,6 @@
 
 Batch insert into database.
 
-[![Latest Stable Version](https://img.shields.io/packagist/v/mrssoft/yii2-db.svg)](https://packagist.org/packages/mrssoft/yii2-db)
 ![PHP](https://img.shields.io/packagist/php-v/mrssoft/yii2-db.svg)
 ![Github](https://img.shields.io/github/license/mrs2000/yii2-db.svg)
 ![Total Downloads](https://img.shields.io/packagist/dt/mrssoft/yii2-db.svg)
@@ -36,17 +35,17 @@ $batch = new DbBatch();
 
 $batch->add([
     'field1' => $value1,
-    'field2' => $value1,
+    'field2' => $value2,
 ]);
 
 $batch->add([
     'field1' => $value1,
-    'field2' => $value1,
+    'field2' => $value2,
 ], $key)
 
 $batch->addUnique([
     'field1' => $value1,
-    'field2' => $value1,
+    'field2' => $value2,
 ]);
 
 $bool = $batch->insert('{{%table}}', true);
@@ -64,7 +63,7 @@ $batch = new DbBatch([
 
 $batch->add([
     'field1' => $value1,
-    'field2' => $value1,
+    'field2' => $value2,
 ], $key);
 
 $batch->update([
